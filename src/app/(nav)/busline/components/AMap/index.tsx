@@ -328,7 +328,7 @@ function Map(props: IProps) {
                 type: '150500|150600|150700', // 兴趣点类别
                 pageSize: 50, // 单页显示结果条数
                 pageIndex: 1, // 页码
-                city: '北京', // 兴趣点城市
+                city: '全国', // 兴趣点城市
                 // citylimit: true, //是否强制限制在设置的城市内搜索
                 // map: AMapRef.current, // 展现结果的地图实例
                 // panel: 'panel', // 结果列表将在此容器中进行展示。
