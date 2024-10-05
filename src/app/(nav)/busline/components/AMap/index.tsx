@@ -3,11 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import '@amap/amap-jsapi-types';
 import { getRandomColor, loader } from '@/common/utils';
+import { LineData, AMapLineExtData, useBusLineStore } from '../../store';
 import SearchBar from './Search';
-// import stationIcon from '../../assets/station-icon.png';
-// import centerIcon from '../../assets/center-icon.png';
 import './index.css';
-import { useBusLineStore } from '../../store';
 
 enum EBuslineStrokeWeight {
     Normal = 5,
@@ -31,26 +29,6 @@ enum EBuslineStrokeStyle {
     base,
     hover,
     selected,
-}
-
-interface LineData {
-    id: string;
-    path: AMap.LngLat[];
-    citycode: string;
-    basic_price: string;
-    total_price: string;
-    // encode json
-    time_desc: string;
-    name: string;
-    start_stop: string;
-    end_stop: string;
-    uicolor: string;
-    via_stops: {
-        location: AMap.LngLat;
-        id: string;
-        name: string;
-        sequence: number;
-    };
 }
 
 //0原始，1提示，2突出
@@ -98,10 +76,11 @@ function genPolylineOptions(typeCode: EBuslineStrokeStyle) {
 function Map(props: IProps) {
     const { jsKey, jsSecureKey } = props;
 
-    const { center, queryConfig, setCenter, setSelectionLine } =
+    const { center, queryConfig, selectionLine, setCenter, setSelectionLine } =
         useBusLineStore((state) => ({
             center: state.center as AMap.LngLat,
             queryConfig: state.queryConfig,
+            selectionLine: state.selectionLine,
             setCenter: state.setCenter,
             setSelectionLine: state.setSelectionLine,
         }));
@@ -144,7 +123,6 @@ function Map(props: IProps) {
                     // 设置地图容器id
                     viewMode: '2D', // 是否为3D地图模式
                     zoom: 11, // 初始化地图级别
-                    center: [116.397428, 39.90923], // 初始化地图中心点位置
                 });
 
                 setIsMapReady(true);
@@ -248,23 +226,25 @@ function Map(props: IProps) {
                                     status === 'complete' &&
                                     result.info === 'OK'
                                 ) {
-                                    const lineInfo = result.lineInfo,
-                                        specificColor = lineInfo[0].uicolor
-                                            ? {
-                                                  strokeColor: `#${lineInfo[0].uicolor}`,
-                                              }
-                                            : undefined; //按照地铁本来颜色绘制
+                                    const lineInfo = result.lineInfo;
+                                    const lineColor = lineInfo[0].uicolor
+                                        ? `#${lineInfo[0].uicolor}`
+                                        : getRandomColor();
+                                    const preOptions = {
+                                        strokeColor: lineColor,
+                                    }
 
                                     if (lineInfo.length !== 0)
                                         handleRenderBusline(
                                             lineInfo[0].path,
                                             {
                                                 lineData: lineInfo,
+                                                color: lineColor,
                                                 index: 0,
                                                 id: lineInfo[0].id,
                                             },
                                             0,
-                                            specificColor,
+                                            preOptions,
                                         ); //默认画第一条线路
                                     // localStorage.setItem(
                                     //   "myStorage",
@@ -286,9 +266,21 @@ function Map(props: IProps) {
         Promise.all(promiseList);
     };
 
+    useEffect(() => {
+        if (!selectionLine) {
+            // reset style
+            if (selectedRef.current) {
+                selectedRef.current.polyline.setOptions(
+                    genPolylineOptions(EBuslineStrokeStyle.base),
+                );
+                selectedRef.current = null;
+            }
+        }
+    }, [selectionLine]);
+
     function handleRenderBusline(
         busPath: AMap.LngLat[],
-        lineInfo: { lineData: LineData[]; index: number; id: string },
+        lineInfo: AMapLineExtData,
         styleCode: EBuslineStrokeStyle,
         preOptions: ConstructorParameters<typeof AMap.Polyline>[0] | undefined,
     ) {
@@ -324,6 +316,7 @@ function Map(props: IProps) {
             const { radius = 500 } = queryConfig || {};
             console.log('center', center);
             mapRef.current.clearMap();
+            mapRef.current.setCenter(center, true, 1000);
             const placeSearch = new (AMap as any).PlaceSearch({
                 type: '150500|150600|150700', // 兴趣点类别
                 pageSize: 50, // 单页显示结果条数
@@ -370,10 +363,7 @@ function Map(props: IProps) {
             event.target instanceof AMap.Polyline,
             event.target.getOptions(),
         );
-        const extData: {
-            id: string;
-            lineData: LineData;
-        } = event.target.getExtData();
+        const extData: AMapLineExtData = event.target.getExtData();
         if (selectedRef.current?.lineId === extData.id) {
             return;
         }
@@ -388,10 +378,7 @@ function Map(props: IProps) {
             event.target instanceof AMap.Polyline,
             event.target.getOptions(),
         );
-        const extData: {
-            id: string;
-            lineData: LineData;
-        } = event.target.getExtData();
+        const extData: AMapLineExtData = event.target.getExtData();
         if (selectedRef.current?.lineId === extData.id) {
             return;
         }
@@ -421,13 +408,9 @@ function Map(props: IProps) {
                     genPolylineOptions(EBuslineStrokeStyle.base),
                 );
             }
-            const extData: {
-                id: string;
-                lineData: LineData[];
-                index: number;
-            } = event.target.getExtData();
+            const extData: AMapLineExtData = event.target.getExtData();
 
-            setSelectionLine(extData.lineData?.[extData.index]?.name);
+            setSelectionLine(extData);
 
             selectedRef.current = {
                 polyline: event.target,

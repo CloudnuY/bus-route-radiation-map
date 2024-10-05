@@ -1,10 +1,38 @@
 import { StateCreator, create } from 'zustand';
 
+export interface LineData {
+    id: string;
+    path: AMap.LngLat[];
+    citycode: string;
+    basic_price: string;
+    total_price: string;
+    // encode json
+    stime: string;
+    etime: string;
+    name: string;
+    start_stop: string;
+    end_stop: string;
+    uicolor: string;
+    via_stops: {
+        location: AMap.LngLat;
+        id: string;
+        name: string;
+        sequence: number;
+    }[];
+}
+
+export interface AMapLineExtData {
+    id: string;
+    lineData: LineData[];
+    index: number;
+    color: string;
+}
+
 export interface StoreStates {
     /**
      * 选中的线路
      */
-    selectionLine: string;
+    selectionLine?: AMapLineExtData;
     /**
      * 查询中心点
      */
@@ -31,7 +59,7 @@ export interface StoreStates {
 }
 
 export interface StoreActions {
-    setSelectionLine: (line: string) => void;
+    setSelectionLine: (line?: AMapLineExtData) => void;
     setCenter: (poi: AMap.LngLat | Omit<BMapGL.Point, 'equals'>) => void;
     setQueryConfig: (config: StoreStates['queryConfig']) => void;
     setStations: (stations: StoreStates['stations']) => void;
@@ -39,7 +67,7 @@ export interface StoreActions {
 
 const store: StateCreator<StoreStates & StoreActions> = (set, get) => {
     return {
-        selectionLine: '',
+        selectionLine: undefined,
         queryConfig: {
             radius: 500,
         },
