@@ -4,7 +4,7 @@
 
 ## 使用方法
 
-**前往基于开源代码搭建的网站 [https://busline-map.vercel.app/busline](https://busline-map.vercel.app/busline)**，按照提示完成配置。
+**前往基于开源代码搭建的网站 [https://bus.multeek.com](https://bus.multeek.com)**，按照提示完成配置。
 
 通过搜索/右键单击地图任意点查询。大量功能重构补齐中。
 
